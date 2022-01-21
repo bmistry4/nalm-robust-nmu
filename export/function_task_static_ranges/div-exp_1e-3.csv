@@ -1,0 +1,11 @@
+"operation","parameter","simple","input.size","subset.ratio","overlap.ratio","range.a","range.b","range.mirror","epsilon","threshold","extrapolation.range"
+"op-div","extrapolation.range",FALSE,100,0.25,0.5,-40,-20,FALSE,0.001,2.1429747356088e-08,"U[-40,-20]"
+"op-div","extrapolation.range",FALSE,100,0.25,0.5,-6,-2,FALSE,0.001,4.92610520926604e-08,"U[-6,-2]"
+"op-div","extrapolation.range",FALSE,100,0.25,0.5,-6.1,-1.2,FALSE,0.001,9.22371396665158e-08,"U[-6.1,-1.2]"
+"op-div","extrapolation.range",FALSE,100,0.25,0.5,-2,-0.2,FALSE,0.001,1.42187619692389e-07,"U[-2,-0.2]"
+"op-div","extrapolation.range",FALSE,100,0.25,0.5,2,6,TRUE,0.001,6108197.64101774,"U[-6,-2] ∪ U[2,6]"
+"op-div","extrapolation.range",FALSE,100,0.25,0.5,0.2,2,FALSE,0.001,1.41811334382077e-07,"U[0.2,2]"
+"op-div","extrapolation.range",FALSE,100,0.25,0.5,2,6,FALSE,0.001,4.92353378605469e-08,"U[2,6]"
+"op-div","extrapolation.range",FALSE,100,0.25,0.5,1.2,6,FALSE,0.001,9.05876304995491e-08,"U[1.2,6]"
+"op-div","extrapolation.range",FALSE,100,0.25,0.5,20,40,FALSE,0.001,2.14249555923474e-08,"U[20,40]"
+

@@ -1,0 +1,85 @@
+This file contains the parameter configurations for the runs to calculate the acceptable MSE threshold to be considered a success
+in different divBy0 tasks.
+- For each, we manually set the weight values to the 'gold' solution and calculate the resulting extrapolation loss.
+- we will also add a +eps to the loss to avoid further issues with precision.
+- To get threshold value use line: print(f'  - extrap + eps thr: {loss_valid_extra + eps}')
+
+Easy (1/a)
+- Gold solution: self.W = torch.nn.Parameter(torch.Tensor([[-1.]]))
+
+32 bit precision:
+python3 -u /home/bm4g15/nalu-stable-exp/experiments/single_layer.py \
+--operation reciprocal --layer-type NRU --nac-mul mnac --input-size 1 --subset-ratio 1 --num-subsets 1
+--max-iterations 1 --remove-existing-data --no-cuda --no-save --pytorch-precision 32
+
+[0, 0.0001]: 0.0008691927068866789
+[0, 0.001]: 4.1970921301981434e-05
+[0, 0.01]: 3.635243501776131e-07
+[0, 0.1]: 1.206472575177031e-07
+[0, 1]: 1.1925459375561331e-07
+
+64 bit precision:
+python3 -u /home/bm4g15/nalu-stable-exp/experiments/single_layer.py \
+--operation reciprocal --layer-type NRU --nac-mul mnac --input-size 1 --subset-ratio 1 --num-subsets 1
+--max-iterations 1 --remove-existing-data --no-cuda --no-save --pytorch-precision 64
+
+[0, 0.0001]: 2.2204469321961336e-16
+[0, 0.001]: 2.2204460493139283e-16
+[0, 0.01]: 2.220446049250555e-16
+[0, 0.1]: 2.220446049250521e-16
+[0, 1]: 2.220446049250313e-16
+
+Medium (1/a)
+- Gold solution: self.W = torch.nn.Parameter(torch.Tensor([[-1.,0.]]))
+
+extrap + eps thr:
+
+32 bit precision:
+python3 -u /home/bm4g15/nalu-stable-exp/experiments/single_layer.py \
+--operation reciprocal --layer-type NRU --nac-mul mnac --max-iterations 1 --remove-existing-data --no-cuda --no-save
+--pytorch-precision 32
+
+[0, 0.0001]: 0.0008079810068011284
+[0, 0.001]: 9.268086614611093e-06
+[0, 0.01]: 1.7597504609057069e-07
+[0, 0.1]: 1.2629826073862205e-07
+[0, 1]: 1.1924292664389213e-07
+
+64 bit precision:
+python3 -u /home/bm4g15/nalu-stable-exp/experiments/single_layer.py \
+--operation reciprocal --layer-type NRU --nac-mul mnac --max-iterations 1 --remove-existing-data --no-cuda --no-save
+--pytorch-precision 64
+
+[0, 0.0001]: 2.2204469891491734e-16
+[0, 0.001]: 2.2204460492596576e-16
+[0, 0.01]: 2.2204460492503446e-16
+[0, 0.1]: 2.220446049250521e-16
+[0, 1]: 2.220446049250313e-16
+
+
+Hard (a/b)
+- Gold solution: self.W = torch.nn.Parameter(torch.Tensor([[1., -1.]]))
+
+32 bit precision:
+python3 -u /home/bm4g15/nalu-stable-exp/experiments/single_layer.py \
+--operation div --layer-type NRU --nac-mul mnac --max-iterations 1 --remove-existing-data --no-cuda --no-save
+--pytorch-precision 32
+
+[0, 0.0001]: 1.1921875398002157e-07
+[0, 0.001]: 1.1924171872124134e-07
+[0, 0.01]: 1.1923013687464845e-07
+[0, 0.1]: 1.192299947661013e-07
+[0, 1]: 1.192308474173842e-07
+
+64 bit precision:
+python3 -u /home/bm4g15/nalu-stable-exp/experiments/single_layer.py \
+--operation div --layer-type NRU --nac-mul mnac --max-iterations 1 --remove-existing-data --no-cuda --no-save
+--pytorch-precision 64
+
+[0, 0.0001]: 2.2204460492504063e-16
+[0, 0.001]: 2.220446049250343e-16
+[0, 0.01]: 2.220446049250585e-16
+[0, 0.1]: 2.2204460492505414e-16
+[0, 1]: 2.220446049250566e-16
+
+--interpolation-range [0,1e-4] --extrapolation-range [0,1e-4]
