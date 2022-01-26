@@ -1,7 +1,11 @@
 """
-Ack:
-The task
+Static MNIST Product; Isolated Digit Version
+The setup for this task follows the work of:
+Bloice, M.D., Roth, P.M., and Holzinger, A. Performing arithmetic using a neural network trained on images of digit
+ permutation pairs. Journal of Intelligent Information Systems (2021). https://doi.org/10.1007/s10844-021-00662-9
 
+Following their original setup: https://github.com/mdbloice/MNIST-Calculator/blob/main/MNIST-Calculator.ipynb
+(with adaptations to work using Pytorch rather than Keras).
 """
 import os
 os.environ['MPLCONFIGDIR'] = '/tmp'
@@ -193,146 +197,6 @@ class NoneTransform(object):
         return image
 
 
-class Img2LabelsRegression(ExtendedTorchModule):
-    """
-    follows the architecture from https://github.com/mdbloice/MNIST-Calculator/blob/main/MNIST-Calculator.ipynb which
-    is a modified version for https://github.com/pytorch/examples/blob/master/mnist/main.py (which implements a
-    convolutional NN similar to the original LeNet5).
-    """
-    # TODO - this one is good for addition but struggles on mul (based off seq mnist convnet)
-    # def __init__(self, **kwargs):
-    #     super(Img2LabelsRegression, self).__init__('cnn_reg', **kwargs)
-    #     self.conv1 = torch.nn.Conv2d(1, 20, 5, 1)
-    #     self.bn1 = torch.nn.BatchNorm2d(20)
-    #     self.conv2 = torch.nn.Conv2d(20, 50, 5, 1)
-    #     self.bn2 = torch.nn.BatchNorm2d(50)
-    #     self.dropout1 = nn.Dropout(0.25)
-    #     self.dropout2 = nn.Dropout(0.5)
-    #     self.fc1 = torch.nn.Linear(50*4*11, 500)  # Default was 128
-    #     self.fc2 = nn.Linear(500, 2)
-    #     # self.fc3 = nn.Linear(100, 2)  # MNIST-calculator example only has 1 output to predict the final result, however we want 2 outputs (for the img lables) as this is an intermediary module.
-    #
-    # def forward(self, x):
-    #     # x shape: [B, C=1, H=28, W=56]
-    #     x = self.bn1(torch.nn.functional.relu(self.conv1(x)))
-    #     x = torch.nn.functional.max_pool2d(x, 2, 2)
-    #     x = self.bn2(torch.nn.functional.relu(self.conv2(x)))
-    #     x = torch.nn.functional.max_pool2d(x, 2, 2)
-    #     x = torch.flatten(x, 1)
-    #     x = torch.nn.functional.relu(self.fc1(x))
-    #     x = self.fc2(x)
-    #     output = x
-    #     # output = F.log_softmax(x, dim=1)
-    #     # output = x.sum(1)
-    #     return output
-
-    # TODO - based off mnist example - arch used for first conv- runs (id 1-8); assume 1 colour channel
-    def __init__(self, **kwargs):
-        super(Img2LabelsRegression, self).__init__('cnn_reg', **kwargs)
-        self.conv1 = nn.Conv2d(1, 32, 3, 1)
-        self.conv2 = nn.Conv2d(32, 64, 3, 1)
-        self.dropout1 = nn.Dropout(0.25)
-        self.dropout2 = nn.Dropout(0.5)
-        self.fc1 = nn.Linear(19968, 256)  # Default was 128
-        self.fc2 = nn.Linear(256, 100)
-        self.fc3 = nn.Linear(100, 2)  # MNIST-calculator example only has 1 output to predict the final result, however we want 2 outputs (for the img lables) as this is an intermediary module.
-
-    def forward(self, x):
-        # x shape: [B, C=1, H=28, W=56]
-        x = self.conv1(x)
-        x = F.relu(x)
-        x = self.conv2(x)
-        x = F.relu(x)
-        x = F.max_pool2d(x, 2)
-        x = self.dropout1(x)
-        x = torch.flatten(x, 1)
-        x = self.fc1(x)
-        x = F.relu(x)
-        x = self.dropout2(x)
-        x = self.fc2(x)
-        x = F.relu(x)
-        output = self.fc3(x)
-        # output = F.log_softmax(x, dim=1)
-        # output = x.sum(1)
-        return output   # [B,2]
-
-
-# FIXME - keeps predicting the same output labels no matter the input value
-class Img2LabelsClassification(ExtendedTorchModule):
-    """
-    follows the architecture from https://github.com/mdbloice/MNIST-Calculator/blob/main/MNIST-Calculator.ipynb which
-    is a modified version for https://github.com/pytorch/examples/blob/master/mnist/main.py (which implements a
-    convolutional NN similar to the original LeNet5).
-    """
-
-    # TODO - this one is good for addition but struggles on mul (based off seq mnist convnet)
-    def __init__(self, **kwargs):
-        super(Img2LabelsClassification, self).__init__('cnn_clf', **kwargs)
-        self.conv1 = torch.nn.Conv2d(1, 20, 5, 1)
-        self.bn1 = torch.nn.BatchNorm2d(20)
-        self.conv2 = torch.nn.Conv2d(20, 50, 5, 1)
-        self.bn2 = torch.nn.BatchNorm2d(50)
-        self.dropout1 = nn.Dropout(0.25)
-        self.dropout2 = nn.Dropout(0.5)
-        self.fc1 = torch.nn.Linear(50*4*11, 500)  # Default was 128
-        self.fc2 = nn.Linear(500, 20)   # 2 sets of 10 where 10 reps labels 0-9
-
-    def forward(self, x):
-        # x shape: [B, C=1, H=28, W=56]
-        x = self.bn1(torch.nn.functional.relu(self.conv1(x)))
-        x = torch.nn.functional.max_pool2d(x, 2, 2)
-        x = self.bn2(torch.nn.functional.relu(self.conv2(x)))
-        x = torch.nn.functional.max_pool2d(x, 2, 2)
-        x = torch.flatten(x, 1)
-        x = torch.nn.functional.relu(self.fc1(x))
-        x = self.fc2(x)
-
-        # split into 2 clf tasks (1 clf for the left img and 1 clf for the right img)
-        x = x.reshape(-1, 2, 10)  # [B,2,10]
-
-        output = F.softmax(x, dim=2)  # TODO scale by temp?
-        digits = torch.arange(0, 10, 1).type(torch.FloatTensor)  # [10] numbers to index from
-        # softargmax
-        output = output @ digits  # [B,2,10] [10] = [B,2,1]
-        output = output.squeeze()
-        return output # [B,2]
-
-
-    # # TODO - based off mnist example - arch used for first conv- runs (id 1-8); assume 1 colour channel
-    # def __init__(self, **kwargs):
-    #     super(Img2LabelsClassification, self).__init__('cnn_clf', **kwargs)
-    #     self.conv1 = nn.Conv2d(1, 32, 3, 1)
-    #     self.conv2 = nn.Conv2d(32, 64, 3, 1)
-    #     self.dropout1 = nn.Dropout(0.25)
-    #     self.dropout2 = nn.Dropout(0.5)
-    #     self.fc1 = nn.Linear(19968, 256)  # Default was 128
-    #
-    #     self.fc2 = nn.Linear(256, 20)   # 2 sets of 10 where 10 reps labels 0-9
-    #
-    # def forward(self, x):
-    #     # x shape: [B, C=1, H=28, W=56]
-    #     x = self.conv1(x)
-    #     x = F.relu(x)
-    #     x = self.conv2(x)
-    #     x = F.relu(x)
-    #     x = F.max_pool2d(x, 2)
-    #     x = self.dropout1(x)
-    #     x = torch.flatten(x, 1)
-    #     x = self.fc1(x)
-    #     x = F.relu(x)
-    #     x = self.dropout2(x)
-    #     x = self.fc2(x)
-    #     x = F.relu(x)
-    #
-    #     # split into 2 clf tasks (1 clf for the left img and 1 clf for the right img)
-    #     x = x.reshape(-1, 2, 10)    # [B,2,10]
-    #     x = F.softmax(x, dim=2)     # TODO scale by temp?
-    #     digits = torch.arange(0, 10, 1).type(torch.FloatTensor)  # [10] numbers to index from
-    #     # softargmax
-    #     x = x @ digits      # [B,2,10] [10] = [B,2,1]
-    #     output = x.squeeze()
-    #     return output   # [B,2]
-
 class Img2LabelsIndepImgClf(ExtendedTorchModule):
     """
     Encoder for mnist single mnist digits.
@@ -372,348 +236,6 @@ class Img2LabelsIndepImgClf(ExtendedTorchModule):
         output = output.unsqueeze(1)
         # recombine the original digits back to the 2-digit img
         output = torch.cat(output.split(output.shape[0] // 2, 0), -1)  # [B, 2]
-        return output
-
-# class Img2LabelsSpatialTransformer(ExtendedTorchModule):
-#     """
-#     Use spatial transformer network for learning localisation and selection of each digit and then additional
-#     classification network to get the two labels.
-#     Based off Pytorch tutorial: https://pytorch.org/tutorials/intermediate/spatial_transformer_tutorial.html
-#     Convert a image into 2 channels (1 per digit) and pass it through 2 different spatial transformers to get 2
-#     transformations which get applied indep and concatenated resulting in a 4 channel f.map which gets pushed though
-#     additional modules until it becomes of shape [B,2,10] to be used as a classifier f.e. digit.
-#     """
-#     def __init__(self, device, **kwargs):
-#         super(Img2LabelsSpatialTransformer, self).__init__('stn_clf', **kwargs)
-#
-#         self.conv1 = nn.Conv2d(4, 10, kernel_size=5)
-#         self.conv2 = nn.Conv2d(10, 20, kernel_size=5)
-#         self.conv2_drop = nn.Dropout2d()
-#         self.fc1 = nn.Linear(880, 50)
-#         self.fc2 = nn.Linear(50, 20)
-#
-#         # Spatial transformer localization-network
-#         self.loc1 = nn.Sequential(
-#             nn.Conv2d(2, 8, kernel_size=7),
-#             nn.MaxPool2d(2, stride=2),
-#             nn.ReLU(True),
-#             nn.Conv2d(8, 10, kernel_size=5),
-#             nn.MaxPool2d(2, stride=2),
-#             nn.ReLU(True)
-#         )
-#
-#         # Regressor for the 3 * 2 affine matrix
-#         self.fc_loc1 = nn.Sequential(
-#             nn.Linear(300, 32),
-#             nn.ReLU(True),
-#             nn.Linear(32, 3 * 2)
-#         )
-#
-#         # Spatial transformer localization-network
-#         self.loc2 = nn.Sequential(
-#             nn.Conv2d(2, 8, kernel_size=7),
-#             nn.MaxPool2d(2, stride=2),
-#             nn.ReLU(True),
-#             nn.Conv2d(8, 10, kernel_size=5),
-#             nn.MaxPool2d(2, stride=2),
-#             nn.ReLU(True)
-#         )
-#
-#         # Regressor for the 3 * 2 affine matrix
-#         self.fc_loc2 = nn.Sequential(
-#             nn.Linear(300, 32),
-#             nn.ReLU(True),
-#             nn.Linear(32, 3 * 2)
-#         )
-#
-#         # Initialize the weights/bias with identity transformation
-#         self.fc_loc1[2].weight.data.zero_()
-#         self.fc_loc1[2].bias.data.copy_(torch.tensor([1, 0, 0, 0, 1, 0], dtype=torch.float))
-#         self.fc_loc2[2].weight.data.zero_()
-#         self.fc_loc2[2].bias.data.copy_(torch.tensor([1, 0, 0, 0, 1, 0], dtype=torch.float))
-#
-#         self.device = device
-#
-#     # Spatial transformer network forward function
-#     def stn(self, x):
-#         # x = [B,2, 56, 28]
-#         xs1 = self.loc1(x)
-#         # [B, 300]
-#         xs1 = xs1.view(-1, 10*3*10)
-#         # [B, 6]
-#         theta1 = self.fc_loc1(xs1)
-#         # [B, 2, 3]
-#         theta1 = theta1.view(-1, 2, 3)
-#         # [B,H,W,2] = affine_grid([B,2,3], [B, 2, H, W])
-#         grid1 = F.affine_grid(theta1, x.size(), align_corners=False)
-#         # [B, C, H, W] = grid_sample([B, 2, H, W], [B,H,W,2])
-#         x1 = F.grid_sample(x, grid1, align_corners=False)
-#
-#         xs2 = self.loc2(x)
-#         xs2 = xs2.view(-1, 10*3*10)
-#         theta2 = self.fc_loc2(xs2)
-#         theta2 = theta2.view(-1, 2, 3)
-#         grid = F.affine_grid(theta2, x.size(), align_corners=False)
-#         x2 = F.grid_sample(x, grid, align_corners=False)
-#
-#         return x1, x2
-#
-#     def forward(self, x):
-#         bsz = x.shape[0]
-#         # make img into 2 channel -> [B,2,H,W]
-#         x = x.repeat(1, 2, 1, 1)
-#         # transform the input where each return tensor has shape [B,C,H,W] = [B,2,28,56]
-#         x_st1, x_st2 = self.stn(x)
-#         x_st = torch.cat([x_st1, x_st2], dim=1)  # [B,4,28,56]
-#
-#         # Perform the usual forward pass
-#         x_st = F.relu(F.max_pool2d(self.conv1(x_st), 2))                    # [B,10,12,26]
-#         x_st = F.relu(F.max_pool2d(self.conv2_drop(self.conv2(x_st)), 2))   # [B,20, 4, 11]
-#         x_st = x_st.view(bsz, 880)                                          # [B, 880]
-#         x_st = F.relu(self.fc1(x_st))                                       # [B, 880] -> [B,50]
-#         x_st = F.dropout(x_st, training=self.training)
-#
-#         x_st = self.fc2(x_st)                                               # [B, 50] -> [B, 20]
-#         x_st = x_st.reshape(-1, 2, 10)                                      # [B,20] -> [B, 2, 10]
-#         output = F.softmax(x_st, dim=-1)                                    # [B, 2, 10]
-#         digits = torch.arange(0, 10, 1).type(torch.FloatTensor).to(self.device)  # [10] numbers to index from
-#         # softargmax
-#         output = output @ digits                                            # [B, 2, 10] [10] = [B,2]
-#         return output
-
-# class Img2LabelsSpatialTransformer(ExtendedTorchModule):
-#     """
-#     Use spatial transformer network for learning localisation and selection of each digit and then additional
-#     classification network to get the two labels.
-#     Based off Pytorch tutorial: https://pytorch.org/tutorials/intermediate/spatial_transformer_tutorial.html
-#     Creates a 2 channel img (1 channel per digit) and passes it through 2 different STs independantly. The two resulting
-#     feature maps are individually passed through a set of transformations to get logits which are used for
-#     classification.
-#     """
-#     def __init__(self, device, **kwargs):
-#         super(Img2LabelsSpatialTransformer, self).__init__('stn_clf', **kwargs)
-#
-#         self.conv1 = nn.Conv2d(2, 10, kernel_size=5)
-#         self.conv2 = nn.Conv2d(10, 20, kernel_size=5)
-#         self.conv2_drop = nn.Dropout2d()
-#         self.fc1 = nn.Linear(880, 50)
-#         self.fc2 = nn.Linear(50, 10)
-#
-#         # Spatial transformer localization-network
-#         self.loc1 = nn.Sequential(
-#             nn.Conv2d(2, 8, kernel_size=7),
-#             nn.MaxPool2d(2, stride=2),
-#             nn.ReLU(True),
-#             nn.Conv2d(8, 10, kernel_size=5),
-#             nn.MaxPool2d(2, stride=2),
-#             nn.ReLU(True)
-#         )
-#
-#         # Regressor for the 3 * 2 affine matrix
-#         self.fc_loc1 = nn.Sequential(
-#             nn.Linear(300, 32),
-#             nn.ReLU(True),
-#             nn.Linear(32, 3 * 2)
-#         )
-#
-#         # Spatial transformer localization-network
-#         self.loc2 = nn.Sequential(
-#             nn.Conv2d(2, 8, kernel_size=7),
-#             nn.MaxPool2d(2, stride=2),
-#             nn.ReLU(True),
-#             nn.Conv2d(8, 10, kernel_size=5),
-#             nn.MaxPool2d(2, stride=2),
-#             nn.ReLU(True)
-#         )
-#
-#         # Regressor for the 3 * 2 affine matrix
-#         self.fc_loc2 = nn.Sequential(
-#             nn.Linear(300, 32),
-#             nn.ReLU(True),
-#             nn.Linear(32, 3 * 2)
-#         )
-#
-#         # Initialize the weights/bias with identity transformation
-#         self.fc_loc1[2].weight.data.zero_()
-#         self.fc_loc1[2].bias.data.copy_(torch.tensor([1, 0, 0, 0, 1, 0], dtype=torch.float))
-#         self.fc_loc2[2].weight.data.zero_()
-#         self.fc_loc2[2].bias.data.copy_(torch.tensor([1, 0, 0, 0, 1, 0], dtype=torch.float))
-#
-#         self.device = device
-#
-#     # Spatial transformer network forward function
-#     def stn(self, x):
-#         # x = [B,2, 56, 28]
-#         xs1 = self.loc1(x)
-#         # [B, 300]
-#         xs1 = xs1.view(-1, 10*3*10)
-#         # [B, 6]
-#         theta1 = self.fc_loc1(xs1)
-#         # [B, 2, 3]
-#         theta1 = theta1.view(-1, 2, 3)
-#         # [B,H,W,2] = affine_grid([B,2,3], [B, 2, H, W])
-#         grid1 = F.affine_grid(theta1, x.size(), align_corners=False)
-#         # [B, C, H, W] = grid_sample([B, 2, H, W], [B,H,W,2])
-#         x1 = F.grid_sample(x, grid1, align_corners=False)
-#
-#         xs2 = self.loc2(x)
-#         xs2 = xs2.view(-1, 10*3*10)
-#         theta2 = self.fc_loc2(xs2)
-#         theta2 = theta2.view(-1, 2, 3)
-#         grid = F.affine_grid(theta2, x.size(), align_corners=False)
-#         x2 = F.grid_sample(x, grid, align_corners=False)
-#
-#         return x1, x2
-#
-#     def forward(self, x):
-#         bsz = x.shape[0]
-#         # make img into 2 channel -> [B,2,H,W]
-#         x = x.repeat(1, 2, 1, 1)
-#         # transform the input where each return tensor has shape [B,C,H,W] = [B,2,28,56]
-#         x_st1, x_st2 = self.stn(x)
-#
-#         # Perform the usual forward pass for 1st ST
-#         x_st1 = F.relu(F.max_pool2d(self.conv1(x_st1), 2))                    # [B,10,12,26]
-#         x_st1 = F.relu(F.max_pool2d(self.conv2_drop(self.conv2(x_st1)), 2))   # [B,20, 4, 11]
-#         x_st1 = x_st1.view(bsz, 880)                                          # [B, 880]
-#         x_st1 = F.relu(self.fc1(x_st1))                                       # [B, 880] -> [B,50]
-#         x_st1 = F.dropout(x_st1, training=self.training)
-#         x_st1 = self.fc2(x_st1)                                               # [B, 50] -> [B, 10]
-#         x_st1 = x_st1.reshape(-1, 1, 10)                                      # [B,10] -> [B, 1, 10]
-#         x_st1 = F.softmax(x_st1, dim=-1)                                    # [B, 1, 10]
-#
-#         # Perform the usual forward pass for 2nd ST
-#         x_st2 = F.relu(F.max_pool2d(self.conv1(x_st2), 2))  # [B,10,12,26]
-#         x_st2 = F.relu(F.max_pool2d(self.conv2_drop(self.conv2(x_st2)), 2))  # [B,20, 4, 11]
-#         x_st2 = x_st2.view(bsz, 880)  # [B, 880]
-#         x_st2 = F.relu(self.fc1(x_st2))  # [B, 880] -> [B,50]
-#         x_st2 = F.dropout(x_st2, training=self.training)
-#         x_st2 = self.fc2(x_st2)  # [B, 50] -> [B, 10]
-#         x_st2 = x_st2.reshape(-1, 1, 10)  # [B,10] -> [B, 1, 10]
-#         x_st2 = F.softmax(x_st2, dim=-1)  # [B, 1, 10]
-#
-#         output = torch.cat((x_st1, x_st2), dim=1)
-#         digits = torch.arange(0, 10, 1).type(torch.FloatTensor).to(self.device)  # [10] numbers to index from
-#         # softargmax
-#         output = output @ digits                                            # [B, 2, 10] [10] = [B,2]
-#         return output
-
-
-class Img2LabelsSpatialTransformer(ExtendedTorchModule):
-    """
-    Use spatial transformer network for learning localisation and selection of each digit and then additional
-    classification network to get the two labels.
-    Based off Pytorch tutorial: https://pytorch.org/tutorials/intermediate/spatial_transformer_tutorial.html
-    Convert a image into 2 channels (1 per digit) and pass it through 2 different spatial transformers to get 2
-    transformations which get applied indep and concatenated resulting in a 4 channel f.map which gets pushed though
-    additional modules until it becomes of shape [B,2,10] to be used as a classifier f.e. digit.
-    Uses an attention based ST matrix so the transformation is less expressive (c.f. matrix for attn and affine) but
-    only requires 3 params to learn (instead of 6).
-    """
-    def __init__(self, device, **kwargs):
-        super(Img2LabelsSpatialTransformer, self).__init__('stn_clf', **kwargs)
-
-        self.conv1 = nn.Conv2d(4, 10, kernel_size=5)
-        self.conv2 = nn.Conv2d(10, 20, kernel_size=5)
-        self.conv2_drop = nn.Dropout2d()
-        self.fc1 = nn.Linear(880, 50)
-        self.fc2 = nn.Linear(50, 20)
-
-        # Spatial transformer localization-network
-        self.loc1 = nn.Sequential(
-            nn.Conv2d(2, 8, kernel_size=7),
-            nn.MaxPool2d(2, stride=2),
-            nn.ReLU(True),
-            nn.Conv2d(8, 10, kernel_size=5),
-            nn.MaxPool2d(2, stride=2),
-            nn.ReLU(True)
-        )
-
-        # Regressor for the 3 * 2 affine matrix
-        self.fc_loc1 = nn.Sequential(
-            nn.Linear(300, 32),
-            nn.ReLU(True),
-            nn.Linear(32, 3)
-        )
-
-        # Spatial transformer localization-network
-        self.loc2 = nn.Sequential(
-            nn.Conv2d(2, 8, kernel_size=7),
-            nn.MaxPool2d(2, stride=2),
-            nn.ReLU(True),
-            nn.Conv2d(8, 10, kernel_size=5),
-            nn.MaxPool2d(2, stride=2),
-            nn.ReLU(True)
-        )
-
-        # Regressor for the 3 * 2 affine matrix
-        self.fc_loc2 = nn.Sequential(
-            nn.Linear(300, 32),
-            nn.ReLU(True),
-            nn.Linear(32, 3)
-        )
-
-        # Initialize the weights/bias with identity transformation
-        self.fc_loc1[2].weight.data.zero_()
-        self.fc_loc1[2].bias.data.copy_(torch.tensor([1, 0, 0], dtype=torch.float))  # set scaling to start at 1 (128/128) -> (before ST/ after ST)
-        self.fc_loc2[2].weight.data.zero_()
-        self.fc_loc2[2].bias.data.copy_(torch.tensor([1, 0, 0], dtype=torch.float))  # set scaling to start at 1 (128/128) -> (before ST/ after ST)
-        self.device = device
-
-    # Spatial transformer network forward function
-    def stn(self, x):
-        # x = [B,2, 56, 28]
-        xs1 = self.loc1(x)
-        # [B, 300]
-        xs1 = xs1.view(-1, 10*3*10)
-        # [B, 3]
-        theta1 = self.fc_loc1(xs1)
-        # [B,1]
-        scale1 = theta1[:, 0].unsqueeze(1)   # get the scaling factor
-        # [B,2]
-        scale_mat1 = torch.cat((scale1, scale1), 1)    # will be creating a diagonal matrix from this
-        # [B,2,1]
-        translation1 = theta1[:, 1:].unsqueeze(2)
-        # [B,2,3] = cat([B,2,2], [B,2,1])
-        theta1 = torch.cat((torch.diag_embed(scale_mat1), translation1), 2)
-        # [B,H,W,2] = affine_grid([B,2,3], [B, 2, H, W])
-        grid1 = F.affine_grid(theta1, x.size(), align_corners=False)    # TODO - downsampling?
-        # [B, C, H, W] = grid_sample([B, 2, H, W], [B,H,W,2])
-        x1 = F.grid_sample(x, grid1, align_corners=False)
-
-        xs2 = self.loc2(x)
-        xs2 = xs2.view(-1, 10 * 3 * 10)
-        theta2 = self.fc_loc2(xs2)
-        scale2 = theta2[:, 0].unsqueeze(1)
-        scale_mat2 = torch.cat((scale2, scale2), 1)
-        translation2 = theta2[:, 1:].unsqueeze(2)
-        theta2 = torch.cat((torch.diag_embed(scale_mat2), translation2), 2)
-        grid2 = F.affine_grid(theta2, x.size(), align_corners=False)    # TODO - downsampling?
-        x2 = F.grid_sample(x, grid2, align_corners=False)
-
-        return x1, x2
-
-    def forward(self, x):
-        bsz = x.shape[0]
-        # make img into 2 channel -> [B,2,H,W]
-        x = x.repeat(1, 2, 1, 1)
-        # transform the input where each return tensor has shape [B,C,H,W] = [B,2,28,56]
-        x_st1, x_st2 = self.stn(x)
-        x_st = torch.cat([x_st1, x_st2], dim=1)  # [B,4,28,56]
-
-        # Perform the usual forward pass
-        x_st = F.relu(F.max_pool2d(self.conv1(x_st), 2))                    # [B,10,12,26]
-        x_st = F.relu(F.max_pool2d(self.conv2_drop(self.conv2(x_st)), 2))   # [B,20, 4, 11]
-        x_st = x_st.view(bsz, 880)                                          # [B, 880]
-        x_st = F.relu(self.fc1(x_st))                                       # [B, 880] -> [B,50]
-        x_st = F.dropout(x_st, training=self.training)
-
-        x_st = self.fc2(x_st)                                               # [B, 50] -> [B, 20]
-        x_st = x_st.reshape(-1, 2, 10)                                      # [B,20] -> [B, 2, 10]
-        output = F.softmax(x_st, dim=-1)                                    # [B, 2, 10]
-        digits = torch.arange(0, 10, 1).type(torch.FloatTensor).to(self.device)  # [10] numbers to index from
-        # softargmax
-        output = output @ digits                                            # [B, 2, 10] [10] = [B,2]
         return output
 
 
@@ -772,12 +294,7 @@ class Net(ExtendedTorchModule):
         self.operation = operation
         self.learn_labels2out = learn_labels2out
 
-        # TODO - have way of switching nets automatically
-        # self.img2label = Img2LabelsRegression()
-        # self.img2label = getattr(torchvision.models, 'resnet18')(num_classes=2)
-        # self.img2label = Img2LabelsClassification()
         self.img2label = Img2LabelsIndepImgClf(device=device)
-        # self.img2label = Img2LabelsSpatialTransformer(device=device)
 
         if use_nalm:
             self.labels2Out = \
@@ -865,7 +382,6 @@ class TwoDigitExperiment:
         plt.show()
 
     def get_label2out_weight(self, model, idx, is_nalm, learn_last_layer):
-        # FIXME: generalise
         if is_nalm:
             return model.labels2Out.W.view(-1)[idx].item()
         elif learn_last_layer:
@@ -1012,11 +528,6 @@ class TwoDigitExperiment:
                                               self.get_label2out_weight(model, 0, args.use_nalm, args.learn_labels2out))
                     summary_writer.add_scalar('label2out/weights/w1',
                                               self.get_label2out_weight(model, 1, args.use_nalm, args.learn_labels2out))
-
-                # if args.use_nalm:
-                #     print(model.labels2Out.W)
-                # if not args.use_nalm and args.learn_labels2out:
-                #     print(model.labels2Out.get_weights())
 
             optimizer.zero_grad()
 
@@ -1240,13 +751,7 @@ class TwoDigitExperiment:
             print(f"Param count (all): {sum(p.numel() for p in model.parameters())}")
             print(f"Param count (trainable): {sum(p.numel() for p in model.parameters() if p.requires_grad)}\n")
 
-        # optimizer = torch.optim.Adadelta(model.parameters(), lr=args.learning_rate, rho=0.95) #torch.optim.Adam(model.parameters(), lr=args.learning_rate)
         optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
-        # see https://github.com/Coderx7/SimpleNet_Pytorch/blob/master/main.py
-        #optimizer = torch.optim.Adadelta(model.parameters(), lr=0.1, rho=0.9, eps=1e-3, weight_decay=0.001)
-        milestones = [10, 20, 50]
-        #scheduler = lr_scheduler.MultiStepLR(optimizer, milestones, gamma=0.1)
-
         ###########################################################################################################
         # Train/test loop
         for epoch in range(args.max_epochs + 1):
@@ -1257,9 +762,6 @@ class TwoDigitExperiment:
             )))
 
             self.epoch_step(model, train_dataloader, args, optimizer, epoch, w_scale, summary_writer, test_dataloader)
-            #current_learning_rate = float(scheduler.get_last_lr()[-1])
-            #print('lr:', current_learning_rate)
-            #scheduler.step()
         ###########################################################################################################
 
         if not use_dummy_writer:
@@ -1274,23 +776,3 @@ class TwoDigitExperiment:
 
 if __name__ == '__main__':
     TwoDigitExperiment()
-
-
-    # args = parser.parse_args()
-    # args.use_nalm = True
-    # args.learn_labels2out = False
-    # args.operation = 'add'
-    # summary_writer = create_tb_writer(args, -1, use_dummy=True)
-    # model = Net(
-    #     writer=summary_writer.every(args.mb_log_interval).verbose(args.verbose),
-    #     img2label_in=2, img2label_out=1,
-    #     use_nalm=args.use_nalm,
-    #     learn_labels2out=args.learn_labels2out,
-    #     operation=args.operation,
-    #     beta_nau=args.beta_nau,
-    #     nau_noise=args.nau_noise,
-    #     nmu_noise=args.nmu_noise,
-    #     noise_range=args.noise_range
-    # )
-    # checkpoint = torch.load('../save/test.pth')
-    # model.load_state_dict(checkpoint['model_state_dict'])

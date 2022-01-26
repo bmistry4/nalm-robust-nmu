@@ -1,4 +1,5 @@
 """
+Static MNIST Product; Colour-channel concatenated Version
 """
 import math
 import os
@@ -231,7 +232,6 @@ def create_tb_writer(args, fold_idx, use_dummy=False):
 
 
 ########################## HOOKS ###################################################################
-# todo - this correct place?
 def fhook_channel_grid(module, input, output):
     # show batch of imgs (as grid) containing the input and the spatially transformed imgs f.e. img channel
     show_channel_conat_batch(input[0], title="input")
@@ -769,10 +769,6 @@ class TwoDigitExperiment:
             optimizer.step()
             model.optimize(loss)
 
-            # if epoch % args.log_interval == 0 and batch_idx == 0:
-            #     print('reg loss:', reg_loss)
-
-
     def reset_weights(self, m):
         """
           Reset model weights to avoid weight leakage.
@@ -811,34 +807,6 @@ class TwoDigitExperiment:
             concat_dim = 0
         elif args.image_concat_dim == 'width':
             concat_dim = 2
-
-        # args.id = -1
-        # args.no_save = True
-        # args.remove_existing_data = True
-        # args.name_prefix = 'two_digit_mnist/TEST-add_nalmF_learnL2OT'
-        #
-        # args.max_epochs = 20
-        # # args.mb_log_interval = 10  # log every x minibatches
-        #
-        # # Number of samples per permutation (e.g. there are 90 permutations in the train set so 1000 * 90)
-        # # for real run set so 1000*90 makes 90,000 training samples and 10*1000=10,000 test samples)
-        # args.samples_per_permutation = 100  # TODO - Results in the paper were for 1,000 samples.
-        # args.use_nalm = False
-        # args.learn_labels2out = False
-        # args.operation = 'add'
-        # args.nmu_noise = False
-        #
-        # args.regualizer_scaling_start = 4
-        # args.regualizer_scaling_end = 6
-        #
-        # # TODO add to shell script
-        # args.img2label_model = 'concat'
-        # args.num_folds = 3
-        # args.batch_size = 256
-        # args.learning_rate = 0.01
-        # args.dataset_workers = 0
-        # # args.val_split = 0.15
-        # # args.scheduler_step_size = 30
 
         ################################################################################
         # check unsupported edge case
