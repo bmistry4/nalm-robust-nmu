@@ -1,5 +1,5 @@
 # Improving the Robustness of Neural Multiplication Units with Reversible Stochasticity
-This repository is the official implementation of [Improving the Robustness of Neural Multiplication Units with Reversible Stochasticity](TODO).
+This repository is the official implementation of [Improving the Robustness of Neural Multiplication Units with Reversible Stochasticity](https://arxiv.org/abs/2211.05624).
 
 This work builds ontop of the research on **[Neural Arithmetic Units](https://openreview.net/forum?id=H1gNOeHKPS) 
 by Andreas Madsen and Alexander Rosenberg Johansen**. 
